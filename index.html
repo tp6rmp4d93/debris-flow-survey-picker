@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="土石流潛勢溪流現地調查建議名單篩選與 Word 清冊匯出工具">
+<title>土石流潛勢溪流現勘名單篩選</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9B%B0%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="toprow">
+      <h1>土石流潛勢溪流現勘名單篩選</h1>
+      <span class="sub" id="subline">尚未匯入資料</span>
+    </div>
+    <div class="strata" aria-label="調查數量分配">
+      <div class="bar" id="bar" role="img" aria-label="尚無入選溪流"></div>
+      <div class="tally"><b id="tallyN">0</b><span id="tallyT">／不限</span></div>
+    </div>
+    <nav class="steps" role="tablist">
+      <button role="tab" data-v="import" aria-selected="true"><span class="n">1</span>匯入資料</button>
+      <button role="tab" data-v="map" aria-selected="false"><span class="n">2</span>欄位對應</button>
+      <button role="tab" data-v="rules" aria-selected="false"><span class="n">3</span>篩選設定</button>
+      <button role="tab" data-v="list" aria-selected="false"><span class="n">4</span>篩選清冊</button>
+      <button role="tab" data-v="export" aria-selected="false"><span class="n">5</span>匯出 Word</button>
+      <button role="tab" data-v="log" aria-selected="false" class="logtab">變更紀錄 <span class="cnt" id="logCount"></span></button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- 1 import -->
+  <section class="view on" id="v-import">
+    <h2>匯入候選溪流試算表</h2>
+    <p class="lead">支援 .xlsx、.xls、.csv。系統會自動找出含「溪流編號、縣市、風險等級」等欄名的標題列，並預先對應欄位。</p>
+    <div class="grid2">
+      <div class="panel">
+        <div class="drop" id="drop" tabindex="0" role="button" aria-label="選擇試算表檔案">
+          <strong>拖曳試算表到這裡，或點選選擇檔案</strong>
+          <span class="muted">例：00_115年土石流現勘名單_150條.xlsx</span>
+        </div>
+        <p class="muted" style="margin:10px 0 0">第一次使用？可先下載 <a href="examples/範例_候選溪流.xlsx" download>範例試算表</a>（虛構資料）試操作。</p>
+        <input type="file" id="file" accept=".xlsx,.xls,.xlsm,.csv" hidden>
+        <div id="impMsg"></div>
+        <div id="sheetRow" class="row" style="margin-top:12px;display:none">
+          <label class="f" for="sheetSel" style="margin:0">工作表</label>
+          <select id="sheetSel" style="width:auto"></select>
+        </div>
+      </div>
+      <div class="panel">
+        <label class="f" for="url">Google 試算表或 OneDrive 分享連結</label>
+        <div class="row">
+          <input type="url" id="url" placeholder="https://docs.google.com/spreadsheets/d/…　或　https://1drv.ms/…" style="flex:1;min-width:200px">
+          <button class="btn" id="urlBtn">讀取連結</button>
+        </div>
+        <p class="muted" style="margin:10px 0 0">連結需設為「知道連結的人皆可檢視」。若雲端服務不允許跨網站讀取（OneDrive 常見），系統會改提供直接下載連結：下載後拖曳到左側即可。</p>
+        <div id="urlMsg"></div>
+      </div>
+    </div>
+    <div class="panel" id="dataInfo" style="display:none"></div>
+  </section>
+
+  <!-- 2 mapping -->
+  <section class="view" id="v-map">
+    <h2>欄位對應</h2>
+    <p class="lead">左欄為 Word 清冊欄位，右側為試算表欄名。已依範例自動預選，可逐一修改；未對應的欄位在清冊中顯示「－」。</p>
+    <div class="tw"><table id="mapTbl"><thead><tr><th>清冊欄位</th><th>試算表欄位</th><th>第一筆資料</th></tr></thead><tbody></tbody></table></div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn" id="remap">重新自動對應</button>
+      <label class="f" for="pctMode" style="margin:0 0 0 auto">崩塌率數值格式</label>
+      <select id="pctMode" style="width:auto">
+        <option value="auto">自動判斷</option>
+        <option value="fraction">小數（0.0015 = 0.15%）</option>
+        <option value="percent">百分比數值（0.15 = 0.15%）</option>
+      </select>
+    </div>
+  </section>
+
+  <!-- 3 rules -->
+  <section class="view" id="v-rules">
+    <h2>篩選設定</h2>
+    <p class="lead">依優先順序由上而下逐類納入，直到達到調查數量。每類可設定上限數量與類內排序依據；「遞補」類別會在註記中列為剩餘額度時依序列入。</p>
+    <div class="panel">
+      <div class="row" style="gap:22px;align-items:flex-end">
+        <div><label class="f" for="total">調查數量（條）</label><input type="number" id="total" min="0" placeholder="不限"></div>
+        <div><label class="f" for="year">調查年度（民國）</label><input type="number" id="year" min="100" max="200"></div>
+        <div style="flex:1;min-width:260px">
+          <label class="row" style="gap:6px"><input type="checkbox" id="autoCls"> 篩選類別空白者，依流程圖自動判定第1~4類</label>
+          <div class="row muted" style="gap:6px;margin-top:4px">第1類：距前次更新 ≥ <input type="number" id="y15" min="1" style="width:60px;padding:2px 6px"> 年且具保全住戶；第3類：紅色警戒且距前次更新 ≥ <input type="number" id="y5" min="1" style="width:60px;padding:2px 6px"> 年</div>
+        </div>
+      </div>
+    </div>
+    <div class="tw"><table class="cats" id="catTbl">
+      <thead><tr><th>順序</th><th>啟用</th><th>類別</th><th>候選</th><th>上限數量</th><th>入選</th><th>註記屬性</th><th>類內排序依據</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <p class="muted">拖曳列或使用 ▲▼ 調整優先順序。上限數量空白代表不限。</p>
+
+    <h2 style="margin-top:26px">業主指定類別</h2>
+    <p class="lead">例如重大災例、陳情案、議員關切案件。輸入溪流編號後，這些溪流會從原類別移入此類別，並依輸入順序排列。</p>
+    <div id="customs"></div>
+    <button class="btn" id="addCustom">新增業主指定類別</button>
+  </section>
+
+  <!-- 4 list -->
+  <section class="view" id="v-list">
+    <div class="toolbar">
+      <h2 style="margin:0 auto 0 0">篩選清冊</h2>
+      <input type="text" id="q" placeholder="搜尋編號、縣市、鄉鎮">
+      <select id="catFilter" style="width:auto"></select>
+    </div>
+    <p class="muted" style="margin-top:0">縣市、鄉鎮市區、村里、初步篩選辦理原因可直接點選修改；按 ✕ 將溪流移出名單，後續溪流會自動遞補。</p>
+    <div class="preview-title" id="pvTitle"></div>
+    <div class="tw" id="listWrap"></div>
+    <p class="notep" id="pvNote"></p>
+    <details id="exDetails" style="margin-top:14px"><summary id="exSum">已移出 0 條</summary><div id="exList" class="row" style="margin-top:8px"></div></details>
+  </section>
+
+  <!-- 5 export -->
+  <section class="view" id="v-export">
+    <h2>匯出 Word 清冊</h2>
+    <p class="lead">依原 Word 範本格式輸出（A4 直式、表頭跨頁重複、頁尾「附件-頁碼」），中文字型為標楷體、英文與數字為 Times New Roman。</p>
+    <div class="panel">
+      <label class="f" for="title">清冊標題（亦為檔名）</label>
+      <div class="row"><input type="text" id="title" style="flex:1"><button class="btn small ghost" id="titleReset">依數量自動產生</button></div>
+      <label class="f" for="note" style="margin-top:14px">表下註記</label>
+      <textarea id="note" rows="4"></textarea>
+      <div class="row" style="margin-top:6px"><button class="btn small ghost" id="noteReset">依目前名單重新產生註記</button></div>
+    </div>
+    <div class="panel">
+      <dl class="kv" id="expKv"></dl>
+      <div class="row" style="margin-top:16px"><button class="btn primary" id="expBtn">匯出 Word 檔</button><span class="muted" id="expMsg"></span></div>
+    </div>
+  </section>
+
+  <!-- log -->
+  <section class="view" id="v-log">
+    <h2>變更紀錄</h2>
+    <p class="lead">每一項更動都會記下時間、程式版本、更動位置與項目，以及原值與新值。紀錄存在此瀏覽器；請定期匯出 CSV 或設定檔，提交到 GitHub 留存版本。</p>
+    <div class="toolbar">
+      <input type="text" id="logQ" placeholder="搜尋位置、項目或溪流編號">
+      <span class="muted" id="logSum"></span>
+      <span style="margin-left:auto" class="row">
+        <button class="btn" id="logCsv">匯出 CSV</button>
+        <button class="btn" id="cfgExport">匯出設定檔</button>
+        <button class="btn" id="cfgImport">匯入設定檔</button>
+        <button class="btn ghost" id="logClear">清除紀錄</button>
+      </span>
+    </div>
+    <input type="file" id="cfgFile" accept=".json,application/json" hidden>
+    <div class="tw" id="logWrap"></div>
+  </section>
+</main>
+<footer class="foot wrap">
+  <span id="ver"></span>・資料僅在瀏覽器中處理，不會上傳到任何伺服器・<a href="CHANGELOG.md">版本沿革</a>
+</footer>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="vendor/jszip.min.js"></script>
+<script src="template/template.js"></script>
+<script src="js/version.js"></script>
+<script src="js/core.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

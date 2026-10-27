@@ -1,0 +1,22 @@
+{
+  "name": "debris-flow-survey-picker",
+  "version": "1.0.0",
+  "description": "土石流潛勢溪流現地調查建議名單篩選與 Word 清冊匯出工具（純前端，可部署於 GitHub Pages）",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test test/core.test.js",
+    "serve": "npx --yes http-server@14.1.1 -c-1 -p 8080 .",
+    "vendor:update": "node scripts/update-vendor.js",
+    "vendor:verify": "node scripts/verify-vendor.js",
+    "version:check": "node scripts/check-version.js",
+    "template:build": "python3 scripts/build-template.py",
+    "template:embed": "python3 scripts/build-template.py --embed-only",
+    "example": "node scripts/make-example.js"
+  },
+  "devDependencies": {
+    "jszip": "3.10.1",
+    "xlsx": "0.18.5"
+  },
+  "engines": { "node": ">=18" }
+}
